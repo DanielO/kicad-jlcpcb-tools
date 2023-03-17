@@ -5,12 +5,13 @@ import re
 from pathlib import Path
 from zipfile import ZipFile
 
-import requests
 from pcbnew import (
+    DRILL_MARKS_NO_DRILL_SHAPE,
+    EDA_ANGLE,
     EXCELLON_WRITER,
-    PCB_PLOT_PARAMS,
     PLOT_CONTROLLER,
     PLOT_FORMAT_GERBER,
+    VECTOR2I,
     ZONE_FILLER,
     B_Cu,
     B_Mask,
@@ -28,7 +29,6 @@ from pcbnew import (
     In4_Cu,
     Refresh,
     ToMM,
-    wxPoint,
 )
 
 from .helpers import PLUGIN_PATH, get_footprint_by_ref
@@ -60,9 +60,7 @@ class Fabrication:
     def fix_rotation(self, footprint):
         """Fix the rotation of footprints in order to be correct for JLCPCB."""
         original = footprint.GetOrientation()
-        # we need to devide by 10 to get 180 out of 1800 for example.
-        # This might be a bug in 5.99 / 6.0 RC
-        rotation = original / 10
+        rotation = original.AsDegrees()
         for regex, correction in self.corrections:
             if re.search(regex, str(footprint.GetFPID().GetLibItemName())):
                 if footprint.GetLayer() == 0:
@@ -106,10 +104,11 @@ class Fabrication:
         popt.SetIncludeGerberNetlistInfo(True)
         popt.SetDisableGerberMacros(False)
 
-        popt.SetDrillMarksType(PCB_PLOT_PARAMS.NO_DRILL_SHAPE)
+        popt.SetDrillMarksType(DRILL_MARKS_NO_DRILL_SHAPE)
 
         popt.SetPlotFrameRef(False)
-        popt.SetExcludeEdgeLayer(True)
+        # XXX: what should this be for KiCAD7?
+        #popt.SetExcludeEdgeLayer(True)
 
         # delete all existing files in the output directory first
         for f in os.listdir(self.gerberdir):
@@ -187,7 +186,7 @@ class Fabrication:
         drlwriter = EXCELLON_WRITER(self.board)
         mirror = False
         minimalHeader = False
-        offset = wxPoint(0, 0)
+        offset = VECTOR2I(0, 0)
         mergeNPTH = False
         drlwriter.SetOptions(mirror, minimalHeader, offset, mergeNPTH)
         drlwriter.SetFormat(False)

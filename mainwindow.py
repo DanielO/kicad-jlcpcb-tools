@@ -447,13 +447,13 @@ class JLCBCBTools(wx.Dialog):
         icons = {
             0: wx.dataview.DataViewIconText(
                 text="",
-                icon=wx.Icon(
+                bitmap=wx.Icon(
                     wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png"))
                 ),
             ),
             1: wx.dataview.DataViewIconText(
                 text="",
-                icon=wx.Icon(
+                bitmap=wx.Icon(
                     wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-close-color.png"))
                 ),
             ),
