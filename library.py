@@ -1,15 +1,11 @@
 import contextlib
 import csv
-import io
-import itertools
 import logging
 import lzma
 import os
 import shlex
 import sqlite3
 import time
-from datetime import datetime as dt
-from ntpath import join
 from pathlib import Path
 from threading import Thread
 
@@ -19,49 +15,6 @@ import wx
 from .events import MessageEvent, ResetGaugeEvent, UpdateGaugeEvent
 from .helpers import PLUGIN_PATH, natural_sort_collation
 
-class LZMAIterReader:
-    '''Pop blocks of binary data from an iterator and de-LZMA it, implement an efficient readline for csv.reader'''
-    def __init__(self, iter):
-        self.iter = iter
-        self.chunk = []
-        self.linebuf = b''
-        self.lzmad = lzma.LZMADecompressor()
-
-    def read(self):
-        if len(self.chunk) == 0:
-            data = next(self.iter)
-            self.chunk = self.lzmad.decompress(data)
-
-        n = len(self.chunk)
-
-        amt = min(n, len(self.chunk))
-        rtn = self.chunk[0:amt]
-        self.chunk = self.chunk[amt:]
-
-        return rtn
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return self.readline()
-
-    def readline(self):
-        while True:
-            idx = self.linebuf.find(b'\r\n')
-            if idx != -1:
-                break
-
-            newdata = self.read()
-            if len(newdata) == 0:
-                raise StopIteration()
-            self.linebuf += newdata
-
-        # Include \r\n in result
-        idx += 2
-        rtn = self.linebuf[0:idx]
-        self.linebuf = self.linebuf[idx:]
-        return rtn
 
 class Library:
     """A storage class to get data from a sqlite database and write it back"""
@@ -309,8 +262,7 @@ class Library:
             f"Downloading file of size {(size / 1024 / 1024):.2f}MB, last modified {lastmod}"
         )
 
-        l = LZMAIterReader(r.iter_content(chunk_size=65536))
-        #l = lzma.LZMAFile(io.StringIO(r.content))
+        l = lzma.LZMAFile(r.raw)
         csv_reader = csv.reader(map(lambda x: x.decode('utf-8'), l))
         headers = next(csv_reader)
         self.delete_parts_table()
