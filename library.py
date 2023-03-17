@@ -80,7 +80,16 @@ class Library:
         try:
             keywords = shlex.split(parameters["keyword"])
         except ValueError as e:
+            wx.PostEvent(
+                self.parent,
+                MessageEvent(
+                    title="Query error",
+                    text=f"Unable to split keywords: {str(e)}",
+                    style="error",
+                ),
+            )
             self.logger.error("Can't split keyword: %s", str(e))
+            return
 
         keyword_columns = [
             "LCSC Part",
