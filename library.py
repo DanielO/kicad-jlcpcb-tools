@@ -19,27 +19,48 @@ import wx
 from .events import MessageEvent, ResetGaugeEvent, UpdateGaugeEvent
 from .helpers import PLUGIN_PATH, natural_sort_collation
 
-class LZMAStringReader(io.BufferedIOBase):
-    '''Pop data from an iterator and de-LZMA it, based on BufferedIOBase so we have readline()'''
+class LZMAIterReader:
+    '''Pop blocks of binary data from an iterator and de-LZMA it, implement an efficient readline for csv.reader'''
     def __init__(self, iter):
         self.iter = iter
         self.chunk = []
+        self.linebuf = b''
         self.lzmad = lzma.LZMADecompressor()
 
-    def readable(self):
-        return True
-
-    def read(self, n = None):
+    def read(self):
         if len(self.chunk) == 0:
-            self.chunk = self.lzmad.decompress(next(self.iter))
+            data = next(self.iter)
+            self.chunk = self.lzmad.decompress(data)
 
-        if n is None:
-            n = len(self.chunk)
+        n = len(self.chunk)
 
         amt = min(n, len(self.chunk))
         rtn = self.chunk[0:amt]
         self.chunk = self.chunk[amt:]
 
+        return rtn
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return self.readline()
+
+    def readline(self):
+        while True:
+            idx = self.linebuf.find(b'\r\n')
+            if idx != -1:
+                break
+
+            newdata = self.read()
+            if len(newdata) == 0:
+                raise StopIteration()
+            self.linebuf += newdata
+
+        # Include \r\n in result
+        idx += 2
+        rtn = self.linebuf[0:idx]
+        self.linebuf = self.linebuf[idx:]
         return rtn
 
 class Library:
@@ -258,28 +279,40 @@ class Library:
                     style="error",
                 ),
             )
-            self.logger.info("Failed");
             return
-        size = int(r.headers.get("Content-Length"))
+
+        size = r.headers.get("Content-Length")
+        if size is None:
+            wx.PostEvent(
+                self.parent,
+                MessageEvent(
+                    title="Download Error",
+                    text=f"Failed to download the JLCPCB database CSV, unable to determine size",
+                    style="error",
+                ),
+            )
+            return
+
+        size = int(size)
         self.logger.info("Size %d", size)
         if size < 1000:
             wx.PostEvent(
                 self.parent,
                 MessageEvent(
                     title="Download Error",
-                    text=f"Failed to download the JLCPCB database CSV, file too small at {size} bytes",
+                    text=f"Failed to download the JLCPCB database CSV, file too small ({size} bytes)",
                     style="error",
                 ),
             )
         lastmod = r.headers.get("Last-Modified")
         self.logger.debug(
-            f"Download with a size of {(size / 1024 / 1024):.2f}MB, last modified {lastmod}"
+            f"Downloading file of size {(size / 1024 / 1024):.2f}MB, last modified {lastmod}"
         )
 
-        l = LZMAStringReader(r.iter_content(chunk_size=65536))
+        l = LZMAIterReader(r.iter_content(chunk_size=65536))
+        #l = lzma.LZMAFile(io.StringIO(r.content))
         csv_reader = csv.reader(map(lambda x: x.decode('utf-8'), l))
         headers = next(csv_reader)
-        self.logger.debug('headers: %s', headers)
         self.delete_parts_table()
         self.create_parts_table(headers)
         self.create_rotation_table()
