@@ -402,7 +402,6 @@ class JLCBCBTools(wx.Dialog):
 
     def quit_dialog(self, e):
         self.Destroy()
-        self.EndModal(0)
 
     def init_library(self):
         """Initialize the parts library"""
@@ -620,7 +619,7 @@ class JLCBCBTools(wx.Dialog):
 
     def manage_rotations(self, e=None):
         """Manage rotation corrections."""
-        RotationManagerDialog(self).ShowModal()
+        RotationManagerDialog(self).Show()
 
     def calculate_costs(self, e):
         """Hopefully we will be able to calculate the part costs in the future."""
@@ -634,7 +633,7 @@ class JLCBCBTools(wx.Dialog):
             reference = self.footprint_list.GetTextValue(row, 0)
             lcsc = self.footprint_list.GetTextValue(row, 3)
             selection[reference] = lcsc
-        PartSelectorDialog(self, selection).ShowModal()
+        PartSelectorDialog(self, selection).Show()
 
     def generate_fabrication_data(self, e):
         """Generate fabrication data."""

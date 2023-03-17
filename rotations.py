@@ -168,7 +168,6 @@ class RotationManagerDialog(wx.Dialog):
 
     def quit_dialog(self, e):
         self.Destroy()
-        self.EndModal(0)
 
     def enable_toolbar_buttons(self, state):
         """Control the state of all the buttons in toolbar on the right side"""

@@ -425,7 +425,6 @@ class PartSelectorDialog(wx.Dialog):
 
     def quit_dialog(self, e):
         self.Destroy()
-        self.EndModal(0)
 
     def OnSortPartList(self, e):
         """Set order_by to the clicked column and trigger list refresh."""
@@ -493,7 +492,7 @@ class PartSelectorDialog(wx.Dialog):
                     reference=reference,
                 ),
             )
-        self.EndModal(wx.ID_OK)
+        self.Destroy()
 
     def get_part_details(self, e):
         """Fetch part details from LCSC and show them in a modal."""

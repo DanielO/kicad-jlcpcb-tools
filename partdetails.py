@@ -111,7 +111,6 @@ class PartDetailsDialog(wx.Dialog):
 
     def quit_dialog(self, e):
         self.Destroy()
-        self.EndModal(0)
 
     def openpdf(self, e):
         """Open the linked datasheet PDF on button click."""
@@ -143,7 +142,7 @@ class PartDetailsDialog(wx.Dialog):
                 "Error",
                 style=wx.ICON_ERROR,
             )
-            self.EndModal()
+            self.Destroy()
         data = r.json()
         if not data.get("data"):
             del self.parent.busy_cursor
@@ -152,7 +151,7 @@ class PartDetailsDialog(wx.Dialog):
                 "Error",
                 style=wx.ICON_ERROR,
             )
-            self.EndModal()
+            self.Destroy()
         parameters = {
             "componentCode": "Component code",
             "firstTypeNameEn": "Primary category",
