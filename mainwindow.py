@@ -652,6 +652,8 @@ class JLCBCBTools(wx.Dialog):
     def init_logger(self):
         """Initialize logger to log into textbox"""
         root = logging.getLogger()
+        # Nuke any existing handlers otherwise reloading causes duplicate log entries
+        root.handlers = []
         root.setLevel(logging.DEBUG)
         # Log to stderr
         handler1 = logging.StreamHandler(sys.stderr)

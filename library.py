@@ -1,8 +1,10 @@
 import contextlib
 import csv
+import io
+import itertools
 import logging
+import lzma
 import os
-import re
 import shlex
 import sqlite3
 import time
@@ -17,11 +19,33 @@ import wx
 from .events import MessageEvent, ResetGaugeEvent, UpdateGaugeEvent
 from .helpers import PLUGIN_PATH, natural_sort_collation
 
+class LZMAStringReader(io.BufferedIOBase):
+    '''Pop data from an iterator and de-LZMA it, based on BufferedIOBase so we have readline()'''
+    def __init__(self, iter):
+        self.iter = iter
+        self.chunk = []
+        self.lzmad = lzma.LZMADecompressor()
+
+    def readable(self):
+        return True
+
+    def read(self, n = None):
+        if len(self.chunk) == 0:
+            self.chunk = self.lzmad.decompress(next(self.iter))
+
+        if n is None:
+            n = len(self.chunk)
+
+        amt = min(n, len(self.chunk))
+        rtn = self.chunk[0:amt]
+        self.chunk = self.chunk[amt:]
+
+        return rtn
 
 class Library:
     """A storage class to get data from a sqlite database and write it back"""
-
-    CSV_URL = "https://jlcpcb.com/componentSearch/uploadComponentInfo"
+    #CSV_URL = "https://yaqwsx.github.io/jlcparts/data/parts.csv.xz"
+    CSV_URL = "https://www.dons.net.au/~darius/test.csv.xz"
 
     def __init__(self, parent):
         self.logger = logging.getLogger(__name__)
@@ -123,7 +147,6 @@ class Library:
             library_types.append('"Extended"')
         if library_types:
             query_chunks.append(f'"Library Type" IN ({",".join(library_types)})')
-
         if parameters["stock"]:
             query_chunks.append(f'"Stock" > "0"')
 
@@ -134,6 +157,7 @@ class Library:
         query += f' ORDER BY "{self.order_by}" COLLATE naturalsort {self.order_dir}'
         query += " LIMIT 1000"
 
+        self.logger.info("Query: %s", query)
         with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
             con.create_collation("naturalsort", natural_sort_collation)
             with con as cur:
@@ -144,15 +168,6 @@ class Library:
         with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
             with con as cur:
                 cur.execute(f"DROP TABLE IF EXISTS parts")
-                cur.commit()
-
-    def create_meta_table(self):
-        """Create the meta table."""
-        with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
-            with con as cur:
-                cur.execute(
-                    f"CREATE TABLE IF NOT EXISTS meta ('filename', 'size', 'partcount', 'date', 'last_update')"
-                )
                 cur.commit()
 
     def create_rotation_table(self):
@@ -209,18 +224,6 @@ class Library:
                     ).fetchall()
                 ]
 
-    def update_meta_data(self, filename, size, partcount, date, last_update):
-        """Update the meta data table."""
-        with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
-            with con as cur:
-                cur.execute(f"DELETE from meta")
-                cur.commit()
-                cur.execute(
-                    f"INSERT INTO meta VALUES (?, ?, ?, ?, ?)",
-                    (filename, size, partcount, date, last_update),
-                )
-                cur.commit()
-
     def create_parts_table(self, columns):
         """Create the parts table."""
         with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
@@ -228,14 +231,6 @@ class Library:
                 cols = ",".join([f" '{c}'" for c in columns])
                 cur.execute(f"CREATE TABLE IF NOT EXISTS parts ({cols})")
                 cur.commit()
-
-    def insert_parts(self, data, cols):
-        """Insert many parts at once."""
-        with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
-            cols = ",".join(["?"] * cols)
-            query = f"INSERT INTO parts VALUES ({cols})"
-            con.executemany(query, data)
-            con.commit()
 
     def get_stock(self, lcsc):
         """Get the stock for a given lcsc number"""
@@ -247,18 +242,13 @@ class Library:
 
     def update(self):
         """Update the sqlite parts database from the JLCPCB CSV."""
-        Thread(target=self.download).start()
+        Thread(target = self.download).start()
 
     def download(self):
         """The actual worker thread that downloads and imports the CSV data."""
         start = time.time()
         wx.PostEvent(self.parent, ResetGaugeEvent())
-        headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.93 Safari/537.36",
-        }
-        r = requests.get(
-            self.CSV_URL, allow_redirects=True, stream=True, headers=headers
-        )
+        r = requests.get(self.CSV_URL, allow_redirects=True, stream=True)
         if r.status_code != requests.codes.ok:
             wx.PostEvent(
                 self.parent,
@@ -268,40 +258,48 @@ class Library:
                     style="error",
                 ),
             )
+            self.logger.info("Failed");
             return
         size = int(r.headers.get("Content-Length"))
-        filename = r.headers.get("Content-Disposition").split("=")[1]
-        date = "unknown"
-        if _date := re.search(r"(\d{4})(\d{2})(\d{2})", filename):
-            date = f"{_date.group(1)}-{_date.group(2)}-{_date.group(3)}"
+        self.logger.info("Size %d", size)
+        if size < 1000:
+            wx.PostEvent(
+                self.parent,
+                MessageEvent(
+                    title="Download Error",
+                    text=f"Failed to download the JLCPCB database CSV, file too small at {size} bytes",
+                    style="error",
+                ),
+            )
+        lastmod = r.headers.get("Last-Modified")
         self.logger.debug(
-            f"Download {filename} with a size of {(size / 1024 / 1024):.2f}MB"
+            f"Download with a size of {(size / 1024 / 1024):.2f}MB, last modified {lastmod}"
         )
-        csv_reader = csv.reader(map(lambda x: x.decode("gbk"), r.raw))
+
+        l = LZMAStringReader(r.iter_content(chunk_size=65536))
+        csv_reader = csv.reader(map(lambda x: x.decode('utf-8'), l))
         headers = next(csv_reader)
-        self.create_meta_table()
+        self.logger.debug('headers: %s', headers)
         self.delete_parts_table()
         self.create_parts_table(headers)
         self.create_rotation_table()
         buffer = []
-        part_count = 0
         with contextlib.closing(sqlite3.connect(self.dbfile)) as con:
             cols = ",".join(["?"] * len(headers))
             query = f"INSERT INTO parts VALUES ({cols})"
 
             for count, row in enumerate(csv_reader):
-                row.pop()
                 buffer.append(row)
                 if count % 1000 == 0:
+                    self.logger.info("Count %d", count)
                     progress = r.raw.tell() / size * 100
                     wx.PostEvent(self.parent, UpdateGaugeEvent(value=progress))
                     con.executemany(query, buffer)
                     buffer = []
-                part_count = count
             if buffer:
                 con.executemany(query, buffer)
             con.commit()
-        self.update_meta_data(filename, size, part_count, date, dt.now().isoformat())
+        self.logger.info("Done")
         wx.PostEvent(self.parent, ResetGaugeEvent())
         self.update_stock()
         wx.PostEvent(self.parent, ResetGaugeEvent())
