@@ -1,7 +1,5 @@
 name: "Update component CSV"
 on:
-  push:
-  pull_request:
   schedule:
     - cron: '0 4 * * *'
 jobs:
@@ -37,5 +35,5 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: CSV
-          path: parts.csv.xz
+          path: web/parts.csv.xz
           retention-days: 14
