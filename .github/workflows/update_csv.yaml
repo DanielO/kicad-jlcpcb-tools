@@ -2,7 +2,7 @@ name: "Update component CSV"
 on:
   schedule:
     - cron: '0 4 * * *'
-  workflow_dipatch:
+  workflow_dispatch:
 jobs:
   build_and_update:
     name: "Update CSV and upload"
