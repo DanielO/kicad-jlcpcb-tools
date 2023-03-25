@@ -33,6 +33,9 @@ jobs:
 
           python3 ../gencsv.py cache.sqlite3 parts.csv.xz
           rm -f cache.z?? cache.sqlite3
+          env
+          pwd
+          ls -laR
       - name: Upload CSV
         uses: actions/upload-pages-artifact@v1
         with:
