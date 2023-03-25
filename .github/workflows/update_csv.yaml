@@ -37,7 +37,7 @@ jobs:
       - name: Upload CSV
         uses: actions/upload-pages-artifact@v1
         with:
-          name: CSV
+          name: github-pages
           path: web
           retention-days: 14
   deploy:
