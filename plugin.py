@@ -20,4 +20,3 @@ class JLCPCBPlugin(ActionPlugin):
         dialog = JLCBCBTools(None)
         dialog.Center()
         dialog.Show()
-
