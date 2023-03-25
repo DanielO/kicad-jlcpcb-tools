@@ -108,7 +108,7 @@ class Fabrication:
 
         popt.SetPlotFrameRef(False)
         # XXX: what should this be for KiCAD7?
-        #popt.SetExcludeEdgeLayer(True)
+        # popt.SetExcludeEdgeLayer(True)
 
         # delete all existing files in the output directory first
         for f in os.listdir(self.gerberdir):

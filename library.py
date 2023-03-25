@@ -18,7 +18,8 @@ from .helpers import PLUGIN_PATH, natural_sort_collation
 
 class Library:
     """A storage class to get data from a sqlite database and write it back"""
-    #CSV_URL = "https://yaqwsx.github.io/jlcparts/data/parts.csv.xz"
+
+    # CSV_URL = "https://yaqwsx.github.io/jlcparts/data/parts.csv.xz"
     CSV_URL = "https://www.dons.net.au/~darius/test.csv.xz"
 
     def __init__(self, parent):
@@ -216,7 +217,7 @@ class Library:
 
     def update(self):
         """Update the sqlite parts database from the JLCPCB CSV."""
-        Thread(target = self.download).start()
+        Thread(target=self.download).start()
 
     def download(self):
         """The actual worker thread that downloads and imports the CSV data."""
@@ -263,7 +264,7 @@ class Library:
         )
 
         l = lzma.LZMAFile(r.raw)
-        csv_reader = csv.reader(map(lambda x: x.decode('utf-8'), l))
+        csv_reader = csv.reader(map(lambda x: x.decode("utf-8"), l))
         headers = next(csv_reader)
         self.delete_parts_table()
         self.create_parts_table(headers)
