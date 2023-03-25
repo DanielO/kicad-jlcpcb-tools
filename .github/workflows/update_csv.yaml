@@ -22,18 +22,17 @@ jobs:
         run: |
           rm -rf web
           mkdir web
-          #cd web
-          #BASEURL=https://yaqwsx.github.io/jlcparts/data/cache
-          #wget -q ${BASEURL}.zip
-          #for seq in $(seq 1 9); do
-          #    wget -q ${BASEURL}.z0$seq || true
-          #done
-          #rm -f cache.sqlite3
-          #7z x cache.zip
+          cd web
+          BASEURL=https://yaqwsx.github.io/jlcparts/data/cache
+          wget -q ${BASEURL}.zip
+          for seq in $(seq 1 9); do
+              wget -q ${BASEURL}.z0$seq || true
+          done
+          rm -f cache.sqlite3
+          7z x cache.zip
 
-          #python3 ../gencsv.py cache.sqlite3 parts.csv.xz
-          #rm -f cache.z?? cache.sqlite3
-          echo foo | xz>web/parts.csv.xz
+          python3 ../gencsv.py cache.sqlite3 parts.csv.xz
+          rm -f cache.z?? cache.sqlite3
       - name: Upload CSV
         uses: actions/upload-pages-artifact@v1
         with:
