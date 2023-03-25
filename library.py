@@ -221,6 +221,7 @@ class Library:
     def download(self):
         """The actual worker thread that downloads and imports the CSV data."""
         start = time.time()
+        self.logger.info("Download started")
         wx.PostEvent(self.parent, ResetGaugeEvent())
         r = requests.get(self.CSV_URL, allow_redirects=True, stream=True)
         if r.status_code != requests.codes.ok:
@@ -275,9 +276,9 @@ class Library:
 
             for count, row in enumerate(csv_reader):
                 buffer.append(row)
-                if count % 1000 == 0:
-                    self.logger.info("Count %d", count)
+                if count % 50000 == 0:
                     progress = r.raw.tell() / size * 100
+                    self.logger.info("Processed %d parts (size %.1f%%)", count, progress)
                     wx.PostEvent(self.parent, UpdateGaugeEvent(value=progress))
                     con.executemany(query, buffer)
                     buffer = []
