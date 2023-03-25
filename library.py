@@ -19,7 +19,7 @@ from .helpers import PLUGIN_PATH, natural_sort_collation
 class Library:
     """A storage class to get data from a sqlite database and write it back"""
 
-    CSV_URL = "https://danielo.github.io/kicad-jlcpcb-tools/parts.csv.xz" 
+    CSV_URL = "https://danielo.github.io/kicad-jlcpcb-tools/parts.csv.xz"
 
     def __init__(self, parent):
         self.logger = logging.getLogger(__name__)
