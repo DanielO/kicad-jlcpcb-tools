@@ -3,6 +3,10 @@ on:
   schedule:
     - cron: '0 4 * * *'
   workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'foo'
+        required: false
 jobs:
   build_and_update:
     name: "Update CSV and upload"
