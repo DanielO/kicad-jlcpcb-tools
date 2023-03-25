@@ -1,0 +1,41 @@
+name: "Update component CSV"
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 4 * * *'
+jobs:
+  build_and_update:
+    name: "Update CSV and upload"
+    runs-on: ubuntu-20.04
+    environment: github-pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3 python3-pip wget zip unzip p7zip-full
+          sudo pip3 install requests
+      - name: Build frontend
+        run: |
+          rm -rf web
+          mkdir web
+          cd web
+          BASEURL=https://yaqwsx.github.io/jlcparts/data/cache
+          wget -q ${BASEURL}.zip
+          for seq in $(seq 1 9); do
+              wget -q ${BASEURL}.z0$seq || true
+          done
+          rm -f cache.sqlite3
+          7z x cache.zip
+
+          python3 ../gencsv.py cache.sqlite3 parts.csv.xz
+          rm -f cache.z?? cache.sqlite3
+      - name: Upload CSV
+        uses: actions/upload-artifact@v3
+        with:
+          name: CSV
+          path: parts.csv.xz
+          retention-days: 14
