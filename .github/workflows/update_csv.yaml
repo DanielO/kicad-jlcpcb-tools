@@ -35,10 +35,10 @@ jobs:
           rm -f cache.z?? cache.sqlite3
           env
           pwd
-          ls -laR
+          ls -laR ..
       - name: Upload CSV
         uses: actions/upload-pages-artifact@v1
         with:
           name: CSV
-          path: web/parts.csv.xz
+          path: web
           retention-days: 14
