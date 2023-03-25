@@ -20,25 +20,33 @@ jobs:
           sudo pip3 install requests
       - name: Download DB and generate CSV
         run: |
-          rm -rf web
-          mkdir web
-          cd web
-          BASEURL=https://yaqwsx.github.io/jlcparts/data/cache
-          wget -q ${BASEURL}.zip
-          for seq in $(seq 1 9); do
-              wget -q ${BASEURL}.z0$seq || true
-          done
-          rm -f cache.sqlite3
-          7z x cache.zip
+          #rm -rf web
+          #mkdir web
+          #cd web
+          #BASEURL=https://yaqwsx.github.io/jlcparts/data/cache
+          #wget -q ${BASEURL}.zip
+          #for seq in $(seq 1 9); do
+          #    wget -q ${BASEURL}.z0$seq || true
+          #done
+          #rm -f cache.sqlite3
+          #7z x cache.zip
 
-          python3 ../gencsv.py cache.sqlite3 parts.csv.xz
-          rm -f cache.z?? cache.sqlite3
-          env
-          pwd
-          ls -laR ..
+          #python3 ../gencsv.py cache.sqlite3 parts.csv.xz
+          #rm -f cache.z?? cache.sqlite3
+          echo foo >parts.csv.xz
       - name: Upload CSV
         uses: actions/upload-pages-artifact@v1
         with:
           name: CSV
           path: web
           retention-days: 14
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build_and_update
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
