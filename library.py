@@ -278,7 +278,9 @@ class Library:
                 buffer.append(row)
                 if count % 50000 == 0:
                     progress = r.raw.tell() / size * 100
-                    self.logger.info("Processed %d parts (size %.1f%%)", count, progress)
+                    self.logger.info(
+                        "Processed %d parts (size %.1f%%)", count, progress
+                    )
                     wx.PostEvent(self.parent, UpdateGaugeEvent(value=progress))
                     con.executemany(query, buffer)
                     buffer = []
