@@ -34,18 +34,18 @@ from pcbnew import (
 )
 
 import pcbnew
-if Version(pcbnew.Version()) >= Version('7.0.0'):
+
+if Version(pcbnew.Version()) >= Version("7.0.0"):
     is_v7 = True
-    from pcbnew import (DRILL_MARKS_NO_DRILL_SHAPE,
-                        EDA_ANGLE,
-                        VECTOR2I)
+    from pcbnew import DRILL_MARKS_NO_DRILL_SHAPE, EDA_ANGLE, VECTOR2I
 else:
     is_v7 = False
-    from pcbnew import (PCB_PLOT_PARAMS,
-                        wxPoint)
+    from pcbnew import PCB_PLOT_PARAMS, wxPoint
+
     DRILL_MARKS_NO_DRILL_SHAPE = PCB_PLOT_PARAMS.NO_DRILL_SHAPE
 
 from .helpers import PLUGIN_PATH, get_footprint_by_ref
+
 
 class Fabrication:
     def __init__(self, parent):

@@ -445,8 +445,12 @@ class JLCBCBTools(wx.Dialog):
     def populate_footprint_list(self):
         """Populate/Refresh list of footprints."""
         self.footprint_list.DeleteAllItems()
-        check_icon = wx.Icon(wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png")))
-        clear_icon = wx.Icon(wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png")))
+        check_icon = wx.Icon(
+            wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png"))
+        )
+        clear_icon = wx.Icon(
+            wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png"))
+        )
         if is_v7:
             icons = {
                 0: wx.dataview.DataViewIconText(text="", bitmap=check_icon),
