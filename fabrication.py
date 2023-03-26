@@ -5,13 +5,15 @@ import re
 from pathlib import Path
 from zipfile import ZipFile
 
+try:
+    from packaging.version import Version as Version
+except ImportError:
+    from distutils.version import LooseVersion as Version
+
 from pcbnew import (
-    DRILL_MARKS_NO_DRILL_SHAPE,
-    EDA_ANGLE,
     EXCELLON_WRITER,
     PLOT_CONTROLLER,
     PLOT_FORMAT_GERBER,
-    VECTOR2I,
     ZONE_FILLER,
     B_Cu,
     B_Mask,
@@ -31,8 +33,19 @@ from pcbnew import (
     ToMM,
 )
 
-from .helpers import PLUGIN_PATH, get_footprint_by_ref
+import pcbnew
+if Version(pcbnew.Version()) >= Version('7.0.0'):
+    is_v7 = True
+    from pcbnew import (DRILL_MARKS_NO_DRILL_SHAPE,
+                        EDA_ANGLE,
+                        VECTOR2I)
+else:
+    is_v7 = False
+    from pcbnew import (PCB_PLOT_PARAMS,
+                        wxPoint)
+    DRILL_MARKS_NO_DRILL_SHAPE = PCB_PLOT_PARAMS.NO_DRILL_SHAPE
 
+from .helpers import PLUGIN_PATH, get_footprint_by_ref
 
 class Fabrication:
     def __init__(self, parent):
@@ -61,6 +74,10 @@ class Fabrication:
         """Fix the rotation of footprints in order to be correct for JLCPCB."""
         original = footprint.GetOrientation()
         rotation = original.AsDegrees()
+        # KiCAD 6 has a bug where this is reported as 10x larger than it is
+        if not is_v7:
+            rotation = rotation / 10.0
+
         for regex, correction in self.corrections:
             if re.search(regex, str(footprint.GetFPID().GetLibItemName())):
                 if footprint.GetLayer() == 0:
@@ -108,7 +125,8 @@ class Fabrication:
 
         popt.SetPlotFrameRef(False)
         # XXX: what should this be for KiCAD7?
-        # popt.SetExcludeEdgeLayer(True)
+        if not is_v7:
+            popt.SetExcludeEdgeLayer(True)
 
         # delete all existing files in the output directory first
         for f in os.listdir(self.gerberdir):
@@ -186,7 +204,10 @@ class Fabrication:
         drlwriter = EXCELLON_WRITER(self.board)
         mirror = False
         minimalHeader = False
-        offset = VECTOR2I(0, 0)
+        if is_v7:
+            offset = VECTOR2I(0, 0)
+        else:
+            offset = wxPoint(0, 0)
         mergeNPTH = False
         drlwriter.SetOptions(mirror, minimalHeader, offset, mergeNPTH)
         drlwriter.SetFormat(False)

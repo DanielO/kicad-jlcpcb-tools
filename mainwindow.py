@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import sys
@@ -13,7 +12,10 @@ from .events import (
     EVT_RESET_GAUGE_EVENT,
     EVT_UPDATE_GAUGE_EVENT,
 )
-from .fabrication import Fabrication
+from .fabrication import (
+    Fabrication,
+    is_v7,
+)
 from .helpers import (
     PLUGIN_PATH,
     get_footprint_by_ref,
@@ -443,20 +445,18 @@ class JLCBCBTools(wx.Dialog):
     def populate_footprint_list(self):
         """Populate/Refresh list of footprints."""
         self.footprint_list.DeleteAllItems()
-        icons = {
-            0: wx.dataview.DataViewIconText(
-                text="",
-                bitmap=wx.Icon(
-                    wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png"))
-                ),
-            ),
-            1: wx.dataview.DataViewIconText(
-                text="",
-                bitmap=wx.Icon(
-                    wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-close-color.png"))
-                ),
-            ),
-        }
+        check_icon = wx.Icon(wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png")))
+        clear_icon = wx.Icon(wx.Bitmap(os.path.join(PLUGIN_PATH, "icons", "mdi-check-color.png")))
+        if is_v7:
+            icons = {
+                0: wx.dataview.DataViewIconText(text="", bitmap=check_icon),
+                1: wx.dataview.DataViewIconText(text="", bitmap=clear_icon),
+            }
+        else:
+            icons = {
+                0: wx.dataview.DataViewIconText(text="", icon=check_icon),
+                1: wx.dataview.DataViewIconText(text="", icon=clear_icon),
+            }
         for part in self.store.read_all():
             part[4] = str(part[4])
             # dont show the part if hide BOM is set
